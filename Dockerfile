@@ -1,18 +1,22 @@
 FROM python:3.11-slim
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# Configure Debian mirror for faster package downloads in China
+RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+        sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources && \
+        sed -i 's|http://security.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources; \
+    elif [ -f /etc/apt/sources.list ]; then \
+        sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list && \
+        sed -i 's|http://security.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list; \
+    fi
 
-# Prevent Python from writing .pyc files, buffer stdout/stderr, and pin common tooling paths
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PATH="/root/.local/bin:${PATH}" \
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Install system dependencies required by scientific Python stack, Playwright, Streamlit, and WeasyPrint PDF
 RUN set -euo pipefail; \
     apt-get update; \
-    if apt-cache show libgdk-pixbuf-2.0-0 >/dev/null 2>&1; then \
+    if apt-cache show libgdk-pixbuf-2.0-0 > /dev/null 2>&1; then \
         GDK_PIXBUF_PKG=libgdk-pixbuf-2.0-0; \
     else \
         GDK_PIXBUF_PKG=libgdk-pixbuf2.0-0; \
@@ -50,14 +54,15 @@ RUN set -euo pipefail; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
 
-# Install the latest uv release and expose it on PATH
+# Install the latest uv release with Tsinghua mirror
 RUN curl -LsSf --retry 3 --retry-delay 2 --proto '=https' --proto-redir '=https' --tlsv1.2 https://astral.sh/uv/install.sh | sh
 
 WORKDIR /app
 
 # Install Python dependencies first to leverage Docker layer caching
+# Use Tsinghua PyPI mirror for faster downloads
 COPY requirements.txt ./
-RUN uv pip install --system -r requirements.txt
+RUN uv pip install --system --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # Install Playwright browser binaries (system deps already handled above)
 RUN python -m playwright install chromium
