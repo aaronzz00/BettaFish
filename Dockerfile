@@ -55,9 +55,6 @@ RUN set -euo pipefail; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/*
 
-# Install the latest uv release with Tsinghua mirror
-RUN curl -LsSf --retry 3 --retry-delay 2 --proto '=https' --proto-redir '=https' --tlsv1.2 https://astral.sh/uv/install.sh | sh
-
 WORKDIR /app
 
 FROM base AS builder
@@ -65,8 +62,8 @@ FROM base AS builder
 # Copy requirements.txt first to leverage Docker layer caching
 COPY requirements.txt ./
 
-# Install Python dependencies with optimized uv settings
-RUN uv pip install --system --no-cache-dir --compile -r requirements.txt
+# Install Python dependencies with pip using Tsinghua mirror
+RUN pip install --no-cache-dir --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
 # Install Playwright browser binaries (system deps already handled above)
 RUN python -m playwright install chromium --with-deps
