@@ -10,3 +10,49 @@ __pycache__
 *.sqlite3
 .DS_Store
 Thumbs.db
+
+# Runtime directories
+logs/
+final_reports/
+insight_engine_streamlit_reports/
+media_engine_streamlit_reports/
+query_engine_streamlit_reports/
+
+# Model directories (large files, not needed in production)
+SentimentAnalysisModel/
+
+# Test directories
+test/
+*/test/
+
+# Documentation
+docs/
+*.md
+!README.md
+!README-EN.md
+
+# Development files
+.python-version
+mypy.ini
+.env
+.env.local
+.env.*.local
+
+# Node.js files (if not needed)
+package.json
+package-lock.json
+
+# Build files
+dist/
+build/
+
+# IDE files
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.cache/
+.tmp/
+.temp/

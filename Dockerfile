@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS base
 
 # Configure Debian mirror for faster package downloads in China
 RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
@@ -11,7 +11,10 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+    UV_EXTRA_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 
 # Install system dependencies required by scientific Python stack, Playwright, Streamlit, and WeasyPrint PDF
 RUN set -euo pipefail; \
@@ -22,9 +25,7 @@ RUN set -euo pipefail; \
         GDK_PIXBUF_PKG=libgdk-pixbuf2.0-0; \
     fi; \
     apt-get install -y --no-install-recommends \
-        build-essential \
         curl \
-        git \
         libgl1 \
         libglib2.0-0 \
         libgtk-3-0 \
@@ -59,13 +60,18 @@ RUN curl -LsSf --retry 3 --retry-delay 2 --proto '=https' --proto-redir '=https'
 
 WORKDIR /app
 
-# Install Python dependencies first to leverage Docker layer caching
-# Use Tsinghua PyPI mirror for faster downloads
+FROM base AS builder
+
+# Copy requirements.txt first to leverage Docker layer caching
 COPY requirements.txt ./
-RUN uv pip install --system --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
+
+# Install Python dependencies with optimized uv settings
+RUN uv pip install --system --no-cache-dir --compile -r requirements.txt
 
 # Install Playwright browser binaries (system deps already handled above)
-RUN python -m playwright install chromium
+RUN python -m playwright install chromium --with-deps
+
+FROM builder AS final
 
 # Copy .env
 COPY .env.example .env
