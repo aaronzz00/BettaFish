@@ -65,8 +65,8 @@ COPY requirements.txt ./
 # Install Python dependencies with pip using Tsinghua mirror
 RUN pip install --no-cache-dir --index-url https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 
-# Install Playwright browser binaries (system deps already handled above)
-RUN python -m playwright install chromium --with-deps
+# Install Playwright browser binaries without system dependencies (we handle them ourselves)
+RUN python -m playwright install chromium
 
 FROM builder AS final
 
